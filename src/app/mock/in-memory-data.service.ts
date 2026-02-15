@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { InMemoryDbService, RequestInfo } from "angular-in-memory-web-api";
+import { InMemoryDbService, RequestInfo, STATUS } from "angular-in-memory-web-api";
 import { Observable } from "rxjs";
 import { UsersMock } from "./datas/users.mock";
 import { MockStrategy } from "./base/mock-strategy.interface";
@@ -35,4 +35,26 @@ export class InMemoryData implements InMemoryDbService{
      return collection.length > 0 ? Math.max(...collection.map(item => item.id)) + 1 : 1;
   }
 
+  post(reqInfo:RequestInfo){
+    if(reqInfo.collectionName==='auth'&&reqInfo.id ==='login'){
+      return this.handleLoginRequest(reqInfo);
+    }
+    return undefined
+  }
+
+  private handleLoginRequest(reqInfo:RequestInfo):Observable<any>{
+    const body = reqInfo.utils.getJsonBody(reqInfo.req);
+    const users = reqInfo.collection.find((c:any)=> c.name === 'users')?.data || [];
+    const user = users.find((u:any) => u.name === body.username || u.email === body.username);
+    if(user){
+      return reqInfo.utils.createResponse$(()=>({
+        body:{user,token:'fake-jwt-token-dev-mode'},
+        status: STATUS.OK
+      }))
+    }
+    return reqInfo.utils.createResponse$(()=>({
+      body:{error:'identifiants invalides'},
+      status:STATUS.UNAUTHORIZED
+    }))
+  }
 }
